@@ -1,0 +1,2 @@
+#!/bin/sh
+gcloud functions deploy $1 --allow-unauthenticated --trigger-http --region=europe-west1 --memory=512MB --runtime=nodejs12
