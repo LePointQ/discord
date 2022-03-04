@@ -115,8 +115,8 @@ const shareReportUlule = async (_, res) => {
 }
 
 
-let ordersCount = 8;
-let commentsCount = 4;
+let ordersCount = 9;
+let commentsCount = 5;
 
 const checkUlule = async (_, res) => {
 	const client = new Discord.Client();
@@ -158,7 +158,9 @@ const checkUlule = async (_, res) => {
 					channel.send(`💜 ${name} vient de donner ${amount} € sans contrepartie !`);
 				}
 			});
+
 			ordersCount = campaign.orders_count;
+
 			await shareReportUlule(_, res);
 		}
 
@@ -174,8 +176,9 @@ const checkUlule = async (_, res) => {
 			newComments.forEach(({ comment, user }) => {	
 				channel.send(`💬 ${user.name} vient de déposer un commentaire :\n_« ${comment} »_`);
 			});
+
+			commentsCount = campaign.comments_count;
 		}
-		
 	});
 
 	client.login(process.env.DISCORD_TOKEN);
