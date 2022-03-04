@@ -1,6 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch');
-const { newSubscriber, shareReport } = require('./index');
+const { newSubscriber, shareReport, checkUlule, shareReportUlule } = require('./index');
 
 const app = express();
 const port = 3000;
@@ -10,6 +10,8 @@ app.use(express.urlencoded({ extended: false }));
 
 app.post('/newSubscriber', newSubscriber);
 app.get('/shareReport', shareReport);
+app.get('/checkUlule', checkUlule);
+app.get('/shareReportUlule', shareReportUlule)
 
 app.listen(port, async () => {
 	console.log(`Example app listening at http://localhost:${port}`);
@@ -30,5 +32,7 @@ app.listen(port, async () => {
 	// 	})
 	// });
 
-	fetch(`http://localhost:${port}/shareReport`);
+	// fetch(`http://localhost:${port}/shareReport`);
+	fetch(`http://localhost:${port}/checkUlule`);
+	// fetch(`http://localhost:${port}/shareReportUlule`);
 });
