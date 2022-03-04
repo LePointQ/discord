@@ -7,7 +7,7 @@ const fs = require('fs');
 const { getChannel } = require('./utils');
 
 
-exports.newSubscriber = async (req, res) => {
+const newSubscriber = async (req, res) => {
 	const client = new Discord.Client();
 
 	client.on('ready', () => {
@@ -22,7 +22,7 @@ exports.newSubscriber = async (req, res) => {
 }
 
 
-exports.shareReport = async (_, res) => {
+const shareReport = async (_, res) => {
 	const client = new Discord.Client();
 
 	client.on('ready', async () => {
@@ -80,10 +80,45 @@ exports.shareReport = async (_, res) => {
 }
 
 
+const shareReportUlule = async (_, res) => {
+	const BASE_URL = 'https://api.ulule.com/v1';
+
+	const campaign = await fetch(`${BASE_URL}/projects/le-point-q`, {
+		headers: {
+			'Authorization': `APIKey ${process.env.ULULE_KEY}`
+		}
+	}).then((r) => r.json());
+
+	const client = new Discord.Client();
+
+	client.on('ready', async () => {
+		const embed = new Discord.MessageEmbed()
+			.setColor('#5E017D')
+			.setTitle(`🚀 Crowdfunding (J - ${parseInt(campaign.time_left)})`)
+			.setURL('https://ulule.com/le-point-q/')
+			.addFields(
+				{
+					name: '💸 Montant récolté',
+					value: `**${campaign.committed} €** (${campaign.percent} % de l’objectif)` + '\n\u200B',
+				}
+			)
+			.addField(`💌 ${campaign.supporters_count} contributeur·rice·s`, '\u200B')
+			.setImage(campaign.image);
+
+		const channel = getChannel(client, 'crowdfunding');
+		channel.send(embed);
+	});
+
+	client.login(process.env.DISCORD_TOKEN);
+	
+	res.status(200).end();
+}
+
+
 let ordersCount = 8;
 let commentsCount = 4;
 
-exports.checkUlule = async (_, res) => {
+const checkUlule = async (_, res) => {
 	const client = new Discord.Client();
 
 	const BASE_URL = 'https://api.ulule.com/v1';
@@ -124,6 +159,7 @@ exports.checkUlule = async (_, res) => {
 				}
 			});
 			ordersCount = campaign.orders_count;
+			await shareReportUlule(_, res);
 		}
 
 		if (campaign.comments_count > commentsCount) {
@@ -148,36 +184,9 @@ exports.checkUlule = async (_, res) => {
 }
 
 
-exports.shareReportUlule = async (_, res) => {
-	const BASE_URL = 'https://api.ulule.com/v1';
-
-	const campaign = await fetch(`${BASE_URL}/projects/le-point-q`, {
-		headers: {
-			'Authorization': `APIKey ${process.env.ULULE_KEY}`
-		}
-	}).then((r) => r.json());
-
-	const client = new Discord.Client();
-
-	client.on('ready', async () => {
-		const embed = new Discord.MessageEmbed()
-			.setColor('#5E017D')
-			.setTitle(`🚀 Crowdfunding (J - ${parseInt(campaign.time_left)})`)
-			.setURL('https://ulule.com/le-point-q/')
-			.addFields(
-				{
-					name: '💸 Montant récolté',
-					value: `**${campaign.committed} €** (${campaign.percent} % de l’objectif)` + '\n\u200B',
-				}
-			)
-			.addField(`💌 ${campaign.supporters_count} contributeur·rice·s`, '\u200B')
-			.setImage(campaign.image);
-
-		const channel = getChannel(client, 'crowdfunding');
-		channel.send(embed);
-	});
-
-	client.login(process.env.DISCORD_TOKEN);
-	
-	res.status(200).end();
-}
+module.exports = {
+	newSubscriber,
+	shareReport,
+	shareReportUlule,
+	checkUlule
+};
