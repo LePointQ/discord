@@ -2,8 +2,6 @@ const Discord = require('discord.js');
 const fetch = require('node-fetch');
 require('dotenv').config();
 
-const fs = require('fs');
-
 const { getChannel } = require('./utils');
 
 
@@ -115,8 +113,8 @@ const shareReportUlule = async (_, res) => {
 }
 
 
-let ordersCount = 9;
-let commentsCount = 5;
+let ordersCount = 13;
+let commentsCount = 9;
 
 const checkUlule = async (_, res) => {
 	const client = new Discord.Client();
