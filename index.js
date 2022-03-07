@@ -1,5 +1,7 @@
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
+const storage = require('node-persist');
+const os = require('os');
 require('dotenv').config();
 
 const { getChannel } = require('./utils');
@@ -113,9 +115,6 @@ const shareReportUlule = async (_, res) => {
 }
 
 
-let ordersCount = 13;
-let commentsCount = 9;
-
 const checkUlule = async (_, res) => {
 	const client = new Discord.Client();
 
@@ -126,6 +125,15 @@ const checkUlule = async (_, res) => {
 			'Authorization': `APIKey ${process.env.ULULE_KEY}`
 		}
 	}).then((r) => r.json());
+
+	await storage.init({
+		dir: os.tmpdir()
+	});
+
+	const ordersCount = await storage.getItem('ordersCount') || 16;
+	const commentsCount = await storage.getItem('commentsCount') || 12;
+
+	// console.log(ordersCount, commentsCount)
 
 	if (campaign.orders_count === ordersCount && campaign.comments_count === commentsCount) {
 		return res.status(200).end();
@@ -146,18 +154,21 @@ const checkUlule = async (_, res) => {
 			newOrders.forEach((order) => {	
 				const name = order.user.name;
 				const amount = order.order_total;
-				const reward = order.items && order.items.length > 0 && order.items[0].reward;
+				const rewards = order.items && order.items.map(({ reward }) => reward.parent ? reward.parent.title.fr : reward.title.fr);
+
+				const formatList = (arr) => arr.length > 1
+					? `${arr.slice(0, -1).join(', ')} & ${arr.slice(-1)[0]}`
+					: arr[0];
 				
-				if (reward) {
-					const rewardName = reward.parent ? reward.parent.title.fr : reward.title.fr;
-					channel.send(`💜 ${name} vient de commander ${rewardName} pour ${amount} € !`);
+				if (rewards.length > 0) {
+					channel.send(`💜 ${name} vient de commander ${formatList(rewards)} pour ${amount} € !`);
 				}
 				else {
 					channel.send(`💜 ${name} vient de donner ${amount} € sans contrepartie !`);
 				}
 			});
 
-			ordersCount = campaign.orders_count;
+			await storage.setItem('ordersCount', campaign.orders_count);
 
 			await shareReportUlule(_, res);
 		}
@@ -172,10 +183,10 @@ const checkUlule = async (_, res) => {
 			const newComments = comments.slice(0, comments.length - commentsCount).reverse();
 
 			newComments.forEach(({ comment, user }) => {	
-				channel.send(`💬 ${user.name} vient de déposer un commentaire :\n_« ${comment} »_`);
+				channel.send(`💬 ${user.name.replace(/_/g, '\\_')} vient de déposer un commentaire :\n_« ${comment} »_`);
 			});
 
-			commentsCount = campaign.comments_count;
+			await storage.setItem('commentsCount', campaign.comments_count);
 		}
 	});
 
