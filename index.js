@@ -127,14 +127,15 @@ const checkUlule = async (_, res) => {
 
 	const storage = new Storage({ keyFilename: 'key.json' });
 
-	const { ordersCount, commentsCount } = JSON.parse(
+	const { ordersCount, commentsCount, repliesCount } = JSON.parse(
 		(await storage.bucket('data-discord').file('data-ulule.json').download())[0].toString()
 	);
 
 	// const ordersCount = 19;
 	// const commentsCount = 14;
 
-	// console.log(ordersCount, campaign.orders_count, commentsCount, campaign.comments_count)
+	console.log(`Contributeur·rice·s : ${campaign.orders_count} (+${campaign.orders_count - ordersCount})`);
+	console.log(`Commentaires : ${campaign.comments_count} (+${campaign.comments_count - commentsCount})`);
 
 	if (campaign.orders_count === ordersCount && campaign.comments_count === commentsCount) {
 		return res.status(200).end();
@@ -143,6 +144,7 @@ const checkUlule = async (_, res) => {
 	client.on('ready', async () => {
 		const channel = getChannel(client, 'crowdfunding');
 
+		// Nouvelles contributions
 		if (campaign.orders_count > ordersCount) {
 			const orders = (await fetch(`${BASE_URL}/projects/le-point-q/orders`, {
 				headers: {
@@ -151,6 +153,8 @@ const checkUlule = async (_, res) => {
 			}).then((r) => r.json())).orders.filter((d) => !d.refunded);
 	
 			const newOrders = orders.slice(0, orders.length - ordersCount).reverse();
+
+			console.log(`${newOrders.length} nouvelle(s) contribution(s)...`);
 			
 			newOrders.forEach((order) => {
 				const name = order.user.name;
@@ -172,25 +176,29 @@ const checkUlule = async (_, res) => {
 			await shareReportUlule(_, res);
 		}
 
-		if (campaign.comments_count > commentsCount) {
-			const comments = (await fetch(`${BASE_URL}/projects/le-point-q/comments`, {
-				headers: {
-					'Authorization': `APIKey ${process.env.ULULE_KEY}`
-				}
-			}).then((r) => r.json())).comments;
+		// Nouveaux commentaires
+		const comments = (await fetch(`${BASE_URL}/projects/le-point-q/comments`, {
+			headers: {
+				'Authorization': `APIKey ${process.env.ULULE_KEY}`
+			}
+		}).then((r) => r.json())).comments;
 
-			const newComments = comments.slice(0, comments.length - commentsCount).reverse();
+		const repliesCountNew = comments.reduce((acc, comment) => acc + comment.replies_count, 0);
 
-			newComments.forEach(({ comment, user }) => {	
-				channel.send(`💬 ${user.name.replace(/_/g, '\\_')} vient de déposer un commentaire :\n_« ${comment} »_`);
-			});
-		}
+		const newComments = comments.slice(0, campaign.comments_count - (repliesCountNew - repliesCount) - commentsCount).reverse();
+
+		console.log(`${newComments.length} nouveau(x) commentaire(s)...`);
+
+		newComments.forEach(({ comment, user }) => {	
+			channel.send(`💬 ${user.name.replace(/_/g, '\\_')} vient de déposer un commentaire :\n_« ${comment} »_`);
+		});
 
 		await storage.bucket('data-discord')
 			.file('data-ulule.json')
 			.save(JSON.stringify({
 				ordersCount: campaign.orders_count,
-				commentsCount: campaign.comments_count
+				commentsCount: campaign.comments_count,
+				repliesCount: repliesCountNew
 			}, null, '\t'));
 	});
 
