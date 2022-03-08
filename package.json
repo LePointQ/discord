@@ -1,18 +1,27 @@
 {
-  "name": "lepointq-discord",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "node test.js"
-  },
-  "author": "Tom Février",
-  "license": "ISC",
-  "dependencies": {
-    "discord.js": "^12.5.3",
-    "dotenv": "^10.0.0",
-    "express": "^4.17.1",
-    "node-fetch": "^2.6.1",
-    "node-persist": "^3.1.0"
-  }
+	"name": "lepointq-discord",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"watch": {
+		"start": "*.js"
+	},
+	"scripts": {
+		"watch": "npm-watch start",
+		"start": "functions-framework --target=checkUlule",
+		"test": "node test"
+	},
+	"author": "Tom Février",
+	"license": "ISC",
+	"dependencies": {
+		"@google-cloud/storage": "^5.18.2",
+		"discord.js": "^12.5.3",
+		"dotenv": "^10.0.0",
+		"express": "^4.17.1",
+		"node-fetch": "^2.6.1"
+	},
+	"devDependencies": {
+		"@google-cloud/functions-framework": "^3.0.0",
+		"npm-watch": "^0.11.0"
+	}
 }
