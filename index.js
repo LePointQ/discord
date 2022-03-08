@@ -127,15 +127,12 @@ const checkUlule = async (_, res) => {
 
 	const storage = new Storage({ keyFilename: 'key.json' });
 
-	const { ordersCount, commentsCount, repliesCount } = JSON.parse(
+	const { ordersCount, commentsCount, datetime } = JSON.parse(
 		(await storage.bucket('data-discord').file('data-ulule.json').download())[0].toString()
 	);
 
-	// const ordersCount = 19;
-	// const commentsCount = 14;
-
 	console.log(`Contributeur·rice·s : ${campaign.orders_count} (+${campaign.orders_count - ordersCount})`);
-	console.log(`Commentaires : ${campaign.comments_count} (+${campaign.comments_count - commentsCount})`);
+	console.log(`Commentaires & réponses : ${campaign.comments_count} (+${campaign.comments_count - commentsCount})`);
 
 	if (campaign.orders_count === ordersCount && campaign.comments_count === commentsCount) {
 		return res.status(200).end();
@@ -151,9 +148,10 @@ const checkUlule = async (_, res) => {
 					'Authorization': `APIKey ${process.env.ULULE_KEY}`
 				}
 			}).then((r) => r.json())).orders.filter((d) => !d.refunded);
-	
-			const newOrders = orders.slice(0, orders.length - ordersCount).reverse();
 
+			// const newOrders = orders.slice(0, orders.length - ordersCount).reverse();
+
+			const newOrders = orders.filter((order) => new Date(order.created_at).getTime() > new Date(datetime).getTime()).reverse();
 			console.log(`${newOrders.length} nouvelle(s) contribution(s)...`);
 			
 			newOrders.forEach((order) => {
@@ -172,33 +170,39 @@ const checkUlule = async (_, res) => {
 					channel.send(`💜 ${name} vient de donner ${amount} € sans contrepartie !`);
 				}
 			});
-
-			await shareReportUlule(_, res);
 		}
 
 		// Nouveaux commentaires
-		const comments = (await fetch(`${BASE_URL}/projects/le-point-q/comments`, {
-			headers: {
-				'Authorization': `APIKey ${process.env.ULULE_KEY}`
-			}
-		}).then((r) => r.json())).comments;
+		if (campaign.comments_count > commentsCount) {
+			const comments = (await fetch(`${BASE_URL}/projects/le-point-q/comments`, {
+				headers: {
+					'Authorization': `APIKey ${process.env.ULULE_KEY}`
+				}
+			}).then((r) => r.json())).comments;
 
-		const repliesCountNew = comments.reduce((acc, comment) => acc + comment.replies_count, 0);
+			// const repliesCountNew = comments.reduce((acc, comment) => acc + comment.replies_count, 0);
 
-		const newComments = comments.slice(0, campaign.comments_count - (repliesCountNew - repliesCount) - commentsCount).reverse();
+			// const newComments = comments.slice(0, campaign.comments_count - (repliesCountNew - repliesCount) - commentsCount).reverse();
 
-		console.log(`${newComments.length} nouveau(x) commentaire(s)...`);
+			const newComments = comments.filter((comment) => new Date(comment.submit_date).getTime() > new Date(datetime).getTime());
+			console.log(`${newComments.length} nouveau(x) commentaire(s)...`);
 
-		newComments.forEach(({ comment, user }) => {	
-			channel.send(`💬 ${user.name.replace(/_/g, '\\_')} vient de déposer un commentaire :\n_« ${comment} »_`);
-		});
+			newComments.forEach(({ comment, user }) => {	
+				channel.send(`💬 ${user.name.replace(/_/g, '\\_')} vient de déposer un commentaire :\n_« ${comment} »_`);
+			});
+		}
+
+		if (campaign.orders_count > ordersCount) {
+			await shareReportUlule(_, res);
+		}
 
 		await storage.bucket('data-discord')
 			.file('data-ulule.json')
 			.save(JSON.stringify({
 				ordersCount: campaign.orders_count,
 				commentsCount: campaign.comments_count,
-				repliesCount: repliesCountNew
+				// repliesCount: repliesCountNew,
+				datetime: new Date().toISOString()
 			}, null, '\t'));
 	});
 
